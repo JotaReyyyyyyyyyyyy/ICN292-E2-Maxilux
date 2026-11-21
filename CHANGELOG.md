@@ -4,6 +4,12 @@ Registro de cambios relevantes entre la **Entrega 1 (Diagnóstico y diseño prel
 
 ---
 
+## [v1.1-e2] — 2026-11-20 · Tablero local
+
+- Agregado el tablero de gestión con navegación de catálogo, prospección y atención. Sus resultados provienen de las consultas de negocio y del esquema SQLite de la entrega.
+- Q6 calcula el plazo de cada campaña contando lunes a viernes hasta el corte de demostración. Q7 agrega las derivaciones por consulta antes del cálculo de porcentajes y tiempos.
+- Incorporadas las instrucciones de ejecución desde un clon limpio, las fichas de KPI y la demo en el informe y la presentación. Los resultados sintéticos de atención y prospección se identifican en pantalla.
+
 ## [v1.0-e2] — 2026-11-19 · Entrega 2 Final
 
 ### 1. Cambio excepcional de razón social del caso: *Unter* → *Maxilux*

@@ -8,15 +8,27 @@ Repositorio oficial de la **Entrega 2 (E2)** de la asignatura **ICN-292 — Sist
 
 ---
 
-## 1. Prueba de oro (reproducibilidad en entorno limpio)
+## 1. Tablero y verificación en localhost
+
+Desde un clon limpio, con Python 3.11 o posterior:
+
+```bash
+git clone --branch v1.1-e2 https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux.git
+cd ICN292-E2-Maxilux
+python -m app
+```
+
+Abre [127.0.0.1:8000](http://127.0.0.1:8000). En **Resumen** puedes identificar las familias con menor cobertura, en **Catálogo** ver qué atributos pedir al proveedor y en **Prospección** y **Atención** revisar los escenarios de ejemplo. La interfaz carga el esquema y los datos en SQLite en memoria, comprueba las claves foráneas y ejecuta Q1 a Q7 al iniciar. Funciona sin instalar paquetes, usar credenciales ni conectar n8n. Para otro puerto usa `python -m app --port 8001`. Cierra con Ctrl+C.
+
+Consulta las [fórmulas, metas y responsables](docs/06-kpi-dashboard.md).
+
+### Verificación SQL (prueba de oro)
 
 Cualquier ayudante o docente puede verificar el esquema **3FN**, cargar los datos y ejecutar las **7 consultas de negocio** en menos de 10 segundos utilizando **SQLite 3** (incluido de serie en Python 3, sin necesidad de instalar motores ni servidores externos):
 
-### Opción A — Ejecutor directo en Python (sin dependencias externas)
+#### Opción A — Ejecutor directo en Python
 
 ```bash
-git clone https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux.git
-cd ICN292-E2-Maxilux
 python db/ejecutar.py
 ```
 
@@ -33,7 +45,7 @@ Si se desea persistir el archivo SQLite en disco para inspeccionarlo con DBeaver
 python db/ejecutar.py --db maxilux_e2.sqlite
 ```
 
-### Opción B — CLI nativo `sqlite3`
+#### Opción B — CLI nativo `sqlite3`
 
 ```bash
 sqlite3 maxilux_e2.sqlite < db/schema.sql
@@ -47,10 +59,11 @@ sqlite3 -header -column maxilux_e2.sqlite < db/consultas.sql
 
 ```text
 Entrega 2/
-├── README.md                          # Esta guía (prueba de oro reproducible)
+├── README.md                          # Tablero localhost y prueba SQL
 ├── CHANGELOG.md                       # Trazabilidad detallada Entrega 1 -> Entrega 2
 ├── ENLACE_GITHUB.txt                  # URL del repositorio y tag/commit defendido
 ├── .gitignore                         # Protección contra fuga de credenciales/archivos locales
+├── app/                               # Interfaz de consulta sobre la base de demostración
 ├── db/
 │   ├── schema.sql                     # DDL SQLite 3 normalizado a 3FN (16 tablas + 2 vistas)
 │   ├── seed.sql                       # DML anonimizado y sintético coherente (511 SKUs, 133 fichas)
@@ -63,6 +76,7 @@ Entrega 2/
 │   ├── 03-modelo-datos.md             # Normalización 1FN->2FN->3FN, anomalías evitadas y diccionario
 │   ├── 04-sql-consultas.md            # Resultados ejecutados e interpretación de Q1 a Q7
 │   ├── 05-automatizacion-n8n.md       # Flujos n8n exportados, arquitectura Worker y trazabilidad BPMN
+│   ├── 06-kpi-dashboard.md            # Indicadores, fórmulas y recorrido de la demo
 │   ├── 07-etica-ley-21719.md          # Cumplimiento Ley 21.719, privacidad y control humano
 │   └── DECLARACION_IA.md              # Declaración transparente de uso de Inteligencia Artificial
 ├── automatizacion/

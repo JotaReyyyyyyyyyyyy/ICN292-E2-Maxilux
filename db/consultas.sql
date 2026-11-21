@@ -90,47 +90,80 @@ LEFT JOIN prospeccion pr ON pr.id_contacto = ct.id_contacto
 GROUP BY b.id_bloqueo, e.razon_social_anon, b.motivo, b.origen_registro, b.fecha_bloqueo
 ORDER BY b.id_bloqueo ASC;
 
--- === Q6: Cola de seguimientos vencidos (>= 3 días hábiles desde envío sin respuesta) ===
+-- === Q6: Cola de seguimientos vencidos según plazo de campaña ===
+WITH RECURSIVE
+corte(fecha) AS (VALUES ('2026-11-19')),
+envios AS (
+    SELECT
+        pr.id_prospeccion,
+        pr.codigo_mxl,
+        e.razon_social_anon,
+        ct.correo_anon,
+        date(MAX(i.fecha_evento)) AS fecha_envio_manual,
+        c.dias_habiles_seguimiento AS regla_dias_habiles
+    FROM prospeccion pr
+    JOIN campana_prospeccion c ON c.id_campana = pr.id_campana
+    JOIN contacto ct ON ct.id_contacto = pr.id_contacto
+    JOIN empresa_cliente e ON e.id_empresa = ct.id_empresa
+    JOIN interaccion_prospeccion i ON i.id_prospeccion = pr.id_prospeccion
+    WHERE pr.estado_sistema = 'ENVIADO'
+      AND i.tipo_evento = 'ENVIO_MANUAL'
+      AND date(i.fecha_evento) < (SELECT fecha FROM corte)
+      AND NOT EXISTS (
+          SELECT 1 FROM bloqueo_contacto b WHERE b.id_empresa = e.id_empresa
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM interaccion_prospeccion i2
+          WHERE i2.id_prospeccion = pr.id_prospeccion
+            AND i2.tipo_evento IN ('RESPUESTA_HUMANA', 'BAJA_OPTOUT', 'REBOTE', 'SEGUIMIENTO_CREADO')
+      )
+    GROUP BY pr.id_prospeccion, pr.codigo_mxl, e.razon_social_anon, ct.correo_anon, c.dias_habiles_seguimiento
+),
+dias(id_prospeccion, fecha) AS (
+    SELECT id_prospeccion, date(fecha_envio_manual, '+1 day') FROM envios
+    UNION ALL
+    SELECT id_prospeccion, date(dias.fecha, '+1 day') FROM dias
+    WHERE dias.fecha < (SELECT fecha FROM corte)
+),
+plazos AS (
+    SELECT id_prospeccion, SUM(strftime('%w', fecha) NOT IN ('0', '6')) AS dias_habiles_sin_resp
+    FROM dias
+    GROUP BY id_prospeccion
+)
 SELECT
-    pr.codigo_mxl,
+    e.codigo_mxl,
     e.razon_social_anon,
-    ct.correo_anon,
-    substr(MAX(CASE WHEN i.tipo_evento = 'ENVIO_MANUAL' THEN i.fecha_evento END), 1, 10) AS fecha_envio_manual,
-    CAST(ROUND(julianday('2026-11-19') - julianday(substr(MAX(CASE WHEN i.tipo_evento = 'ENVIO_MANUAL' THEN i.fecha_evento END), 1, 10))) AS INTEGER) AS dias_corridos_sin_resp,
-    c.dias_habiles_seguimiento AS regla_dias_habiles
-FROM prospeccion pr
-JOIN campana_prospeccion c ON c.id_campana = pr.id_campana
-JOIN contacto ct ON ct.id_contacto = pr.id_contacto
-JOIN empresa_cliente e ON e.id_empresa = ct.id_empresa
-JOIN interaccion_prospeccion i ON i.id_prospeccion = pr.id_prospeccion
-WHERE pr.estado_sistema = 'ENVIADO'
-  AND NOT EXISTS (
-      SELECT 1 FROM bloqueo_contacto b
-      WHERE b.id_empresa = e.id_empresa
-  )
-  AND NOT EXISTS (
-      SELECT 1 FROM interaccion_prospeccion i2
-      WHERE i2.id_prospeccion = pr.id_prospeccion
-        AND i2.tipo_evento IN ('RESPUESTA_HUMANA', 'BAJA_OPTOUT', 'REBOTE', 'SEGUIMIENTO_CREADO')
-  )
-GROUP BY pr.id_prospeccion, pr.codigo_mxl, e.razon_social_anon, ct.correo_anon, c.dias_habiles_seguimiento
-HAVING MAX(CASE WHEN i.tipo_evento = 'ENVIO_MANUAL' THEN i.fecha_evento END) <= '2026-11-16T23:59:59Z'
-ORDER BY fecha_envio_manual ASC;
+    e.correo_anon,
+    e.fecha_envio_manual,
+    CAST(julianday((SELECT fecha FROM corte)) - julianday(e.fecha_envio_manual) AS INTEGER) AS dias_corridos_sin_resp,
+    e.regla_dias_habiles,
+    p.dias_habiles_sin_resp
+FROM envios e
+JOIN plazos p ON p.id_prospeccion = e.id_prospeccion
+WHERE p.dias_habiles_sin_resp >= e.regla_dias_habiles
+ORDER BY e.fecha_envio_manual, e.codigo_mxl;
 
 -- === Q7: Impacto de disponibilidad documental en atención de clientes y derivaciones ===
+WITH derivaciones AS (
+    SELECT id_consulta,
+           SUM(asignado_rol = 'COMERCIAL_OPERACIONES') AS comerciales,
+           SUM(asignado_rol = 'FINANZAS_PROVEEDORES') AS financieras
+    FROM derivacion_consulta
+    GROUP BY id_consulta
+)
 SELECT
     COALESCE(p.estado_doc, 'CONSULTA_GENERAL') AS respaldo_documental,
-    COUNT(DISTINCT cc.id_consulta) AS total_consultas,
+    COUNT(*) AS total_consultas,
     SUM(cc.resuelta_por_ia) AS resueltas_por_ia,
-    ROUND(100.0 * SUM(cc.resuelta_por_ia) / COUNT(DISTINCT cc.id_consulta), 1) AS pct_resolucion_ia,
-    SUM(CASE WHEN d.asignado_rol = 'COMERCIAL_OPERACIONES' THEN 1 ELSE 0 END) AS deriv_comercial_oper,
-    SUM(CASE WHEN d.asignado_rol = 'FINANZAS_PROVEEDORES' THEN 1 ELSE 0 END) AS deriv_finanzas_prov,
+    ROUND(100.0 * SUM(cc.resuelta_por_ia) / COUNT(*), 1) AS pct_resolucion_ia,
+    SUM(COALESCE(d.comerciales, 0)) AS deriv_comercial_oper,
+    SUM(COALESCE(d.financieras, 0)) AS deriv_finanzas_prov,
     ROUND(AVG(CASE
         WHEN cc.fecha_respuesta IS NOT NULL
         THEN (julianday(cc.fecha_respuesta) - julianday(cc.fecha_ingreso)) * 1440.0
     END), 1) AS tiempo_resp_prom_min
 FROM consulta_cliente cc
 LEFT JOIN producto p ON p.sku = cc.sku_consultado
-LEFT JOIN derivacion_consulta d ON d.id_consulta = cc.id_consulta
+LEFT JOIN derivaciones d ON d.id_consulta = cc.id_consulta
 GROUP BY COALESCE(p.estado_doc, 'CONSULTA_GENERAL')
 ORDER BY pct_resolucion_ia DESC, total_consultas DESC;

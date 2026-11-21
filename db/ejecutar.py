@@ -37,6 +37,20 @@ def split_queries(sql_text):
     return queries
 
 
+def load_database(conn):
+    conn.execute("PRAGMA foreign_keys = ON;")
+    for filename in ("schema.sql", "seed.sql"):
+        conn.executescript((BASE_DIR / filename).read_text(encoding="utf-8"))
+
+    fk_errors = conn.execute("PRAGMA foreign_key_check;").fetchall()
+    if fk_errors:
+        raise RuntimeError(f"Errores de clave foránea detectados: {fk_errors}")
+
+
+def read_queries():
+    return split_queries((BASE_DIR / "consultas.sql").read_text(encoding="utf-8"))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Carga schema.sql + seed.sql y ejecuta consultas.sql en SQLite 3.")
     parser.add_argument("--db", default=":memory:", help="Ruta del archivo SQLite de salida (por defecto :memory:)")
@@ -48,18 +62,7 @@ def main():
             db_path.unlink()
 
     conn = sqlite3.connect(args.db)
-    conn.execute("PRAGMA foreign_keys = ON;")
-
-    schema_sql = (BASE_DIR / "schema.sql").read_text(encoding="utf-8")
-    seed_sql = (BASE_DIR / "seed.sql").read_text(encoding="utf-8")
-    queries_sql = (BASE_DIR / "consultas.sql").read_text(encoding="utf-8")
-
-    conn.executescript(schema_sql)
-    conn.executescript(seed_sql)
-
-    fk_errors = conn.execute("PRAGMA foreign_key_check;").fetchall()
-    if fk_errors:
-        raise RuntimeError(f"Errores de clave foránea detectados: {fk_errors}")
+    load_database(conn)
 
     print("=== VERIFICACIÓN DE INTEGRIDAD REFERENCIAL Y VOLUMEN ===")
     checks = [
@@ -81,7 +84,7 @@ def main():
     summary_rows = [(label, conn.execute(q).fetchone()[0]) for label, q in checks]
     print(format_table(["Entidad / Control", "Cantidad"], summary_rows))
 
-    for title, sql in split_queries(queries_sql):
+    for title, sql in read_queries():
         print(f"\n=== {title} ===")
         cur = conn.execute(sql)
         headers = [d[0] for d in cur.description]

@@ -103,14 +103,14 @@ Todas las consultas se encuentran en [db/consultas.sql](../db/consultas.sql) y s
 
 **Pregunta de negocio:** ¿Qué empresas contactadas manualmente cumplieron ≥ 3 días hábiles sin respuesta humana ni baja, listas para encolar su único seguimiento en revisión?
 
-**Resultado ejecutado (corte `2026-11-19`):**
+**Resultado ejecutado (corte de demostración `2026-11-19`):** Q6 cuenta lunes a viernes posteriores al último envío manual, hasta el corte inclusive, y aplica el plazo configurado por campaña. No incorpora un calendario de feriados.
 
-| codigo_mxl | razon_social_anon | correo_anon | fecha_envio_manual | dias_corridos_sin_resp | regla_dias_habiles |
-|---|---|---|---|---:|---:|
-| `MXL-PROS-002` | Maestranza Industrial Poniente Ltda. (ficticia) | `mantencion@maestranza-poniente.example` | 2026-11-10 | 9 | 3 |
-| `MXL-PROS-005` | Constructora Obras Civiles Norte S.A. (ficticia) | `adquisiciones@obras-norte.example` | 2026-11-11 | 8 | 3 |
-| `MXL-PROS-008` | Planta Procesadora BioBío S.A. (ficticia) | `servicios@procesadora-biobio.example` | 2026-11-12 | 7 | 3 |
-| `MXL-PROS-011` | Astilleros del Pacífico Sur Ltda. (ficticia) | `mantencion@astilleros-sur.example` | 2026-11-13 | 6 | 3 |
+| codigo_mxl | razon_social_anon | correo_anon | fecha_envio_manual | dias_corridos_sin_resp | regla_dias_habiles | dias_habiles_sin_resp |
+|---|---|---|---|---:|---:|---:|
+| `MXL-PROS-002` | Maestranza Industrial Poniente Ltda. (ficticia) | `mantencion@maestranza-poniente.example` | 2026-11-10 | 9 | 3 | 7 |
+| `MXL-PROS-005` | Constructora Obras Civiles Norte S.A. (ficticia) | `adquisiciones@obras-norte.example` | 2026-11-11 | 8 | 3 | 6 |
+| `MXL-PROS-008` | Planta Procesadora BioBío S.A. (ficticia) | `servicios@procesadora-biobio.example` | 2026-11-12 | 7 | 3 | 5 |
+| `MXL-PROS-011` | Astilleros del Pacífico Sur Ltda. (ficticia) | `mantencion@astilleros-sur.example` | 2026-11-13 | 6 | 3 | 4 |
 
 **Interpretación:** Nótese el caso `MXL-PROS-008` (Planta Procesadora BioBío): recibió una respuesta automática (`RESPUESTA_AUTO` fuera de oficina), la cual fue correctamente excluida por la consulta (tal como lo hace `classify()` en `src/mail.mjs`), manteniéndola elegible para seguimiento humano tras cumplirse el plazo de 3 días hábiles.
 
@@ -129,4 +129,4 @@ Todas las consultas se encuentran en [db/consultas.sql](../db/consultas.sql) y s
 | `BORRADOR` | 9 | 0 | 0,0% | 5 | 2 | 470,7 |
 | `SIN_RESPALDO` | 7 | 0 | 0,0% | 0 | 6 | 1419,0 |
 
-**Interpretación:** Esta consulta demuestra el **cierre sistémico entre los tres módulos** propuesto desde E1: cuando el producto tiene ficha `APROBADA` (`COMPLETA`), 5 de cada 6 consultas (83,3%) se resuelven de manera inmediata sin intervención humana, bajando el tiempo promedio a **25,3 minutos** (incluyendo la única derivación por precio). En contraste, los productos en `BORRADOR` (0% resolución IA; **470,7 min ~ 7,8 horas**) obligan a derivar a Comercial/Operaciones para validar datos críticos, y los `SIN_RESPALDO` (**1.419,0 min ~ 23,7 horas**) escalan íntegramente a Finanzas/Proveedores para consultar al fabricante.
+**Interpretación:** En las 24 consultas sintéticas, 5 de los 6 casos con ficha completa (83,3 %) se registran como resueltos por IA. El tiempo medio de ese grupo es 25,3 min, frente a 470,7 min para borrador y 1.419,0 min sin respaldo. Es un escenario para comparar prioridades de documentación. Las derivaciones se agregan por consulta antes de calcular las tasas y los promedios.

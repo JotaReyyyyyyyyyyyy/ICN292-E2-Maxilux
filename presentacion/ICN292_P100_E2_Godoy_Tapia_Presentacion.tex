@@ -43,7 +43,7 @@
 \subtitle{De procesos manuales a automatización en n8n y base de datos 3FN auditable}
 \author[Grupo 2 · P100]{Juan Pablo Godoy · Vicente Soto · Joaquín Tapia · Claudio Vera}
 \institute[USM Vitacura]{ICN-292 — Sistemas de Información para la Gestión · Prof. Patricio Cifuentes\\Universidad Técnica Federico Santa María · Campus Vitacura}
-\date{Noviembre 2026 · Repo: \texttt{github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux} (\texttt{v1.0-e2})}
+\date{Noviembre 2026 · \href{https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux/tree/v1.1-e2}{Repositorio y versión de defensa \texttt{v1.1-e2}}}
 
 \begin{document}
 
@@ -95,7 +95,7 @@ Reenviar PDF de terceros exponía marcas (riesgo de desintermediación).\\[4pt]
 \begin{tcolorbox}[colback=mxLight,colframe=mxWarn,title=\textbf{Atención de consultas}]
 \small
 Consultas por WhatsApp, correo y teléfono sin entrada única.\\[4pt]
-Cuando falta una ficha técnica, la respuesta demora hasta \textbf{23,7 horas} esperando al proveedor.
+Cuando falta respaldo técnico, el equipo debe pedir información al proveedor antes de responder.
 \end{tcolorbox}
 \end{columns}
 \end{frame}
@@ -103,17 +103,16 @@ Cuando falta una ficha técnica, la respuesta demora hasta \textbf{23,7 horas} e
 % --- SLIDE 4: PROCESO TO-BE PROSPECCION N8N ---
 \begin{frame}{3. Automatización en n8n: Prospección B2B con control humano}
 \begin{columns}[T]
-\column{0.58\textwidth}
+\column{0.67\textwidth}
 \centering
 \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../informe/bpmn_prospeccion_tobe_e2.png}
-\column{0.40\textwidth}
+\column{0.31\textwidth}
 \small
 \begin{itemize}
-    \item \textbf{Flujo 1 (Manual):} Cupo máx. \textbf{100 pendientes}, búsqueda IA en 14 familias y verificación literal de correo en dominio.
-    \item \textbf{Revisión humana:} Google Sheets (5 pestañas; solo C, H, I, J editables).
-    \item \textbf{Flujo 2 (Manual):} Borradores IMAP idempotentes en \texttt{Drafts}; \textbf{cero envío automático} (\texttt{DELIVERY\_MODE=drafts}).
-    \item \textbf{Flujo 3 (Cron 15m):} Monitorea \texttt{Sent}/\texttt{INBOX}, aplica bajas Ley 21.719 y prepara máx. 1 seguimiento a los \textbf{3 días hábiles}.
-    \item \textbf{Flujo 4 (Dom 08:00):} PDF LaTeX semanal vía Telegram (sin IA).
+    \item Busca candidatos y verifica el correo publicado.
+    \item La revisión humana en Sheets habilita el borrador. El envío es manual.
+    \item Excluye bajas y prepara un seguimiento tras 3 días hábiles.
+    \item Genera un resumen semanal por Telegram.
 \end{itemize}
 \end{columns}
 \end{frame}
@@ -121,17 +120,16 @@ Cuando falta una ficha técnica, la respuesta demora hasta \textbf{23,7 horas} e
 % --- SLIDE 5: FICHAS Y ARQUITECTURA ---
 \begin{frame}{4. Automatización de Fichas Técnicas y Arquitectura SIG}
 \begin{columns}[T]
-\column{0.54\textwidth}
+\column{0.66\textwidth}
 \centering
 \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{../informe/arquitectura_sig_maxilux.png}
-\column{0.44\textwidth}
+\column{0.32\textwidth}
 \small
-\begin{block}{Generador Consolidado (\texttt{generador/})}
+\begin{block}{Generador de fichas}
 \begin{itemize}
-    \item Disparo vía n8n (\texttt{Maxilux\_Generar\_Fichas.json}, HTTP \texttt{:8790}).
-    \item Fusiona Lista (511 SKUs) + 55 PDFs + 3 webs de proveedores.
-    \item \textbf{Filtro anti-marcas:} aborta si aparece un proveedor (\textbf{0 fugas}).
-    \item Compila \textbf{133 PDFs XeLaTeX ($\le 2$ págs.)}: 2 \texttt{FINAL} + 131 \texttt{BORRADOR} cuando falta IP, Temp. o Cert.
+    \item n8n inicia la generación desde el catálogo y las fuentes técnicas.
+    \item El filtro excluye las marcas de proveedores.
+    \item De 133 fichas, \textbf{2 aprobadas} y \textbf{131 en borrador}.
 \end{itemize}
 \end{block}
 \end{columns}
@@ -140,23 +138,26 @@ Cuando falta una ficha técnica, la respuesta demora hasta \textbf{23,7 horas} e
 % --- SLIDE 6: MODELO DE DATOS 3FN ---
 \begin{frame}{5. Modelo de Datos en 3FN estricta (16 tablas + 2 vistas)}
 \begin{columns}[T]
-\column{0.62\textwidth}
+\column{0.70\textwidth}
 \centering
 \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{../informe/er_maxilux_3fn.png}
-\column{0.36\textwidth}
+\column{0.28\textwidth}
 \small
 \begin{block}{Anomalías eliminadas}
 \begin{itemize}
-    \item \textbf{1FN:} Eliminadas columnas \texttt{Caract. 1..6} del Excel (77 cols) y blobs JSON de \texttt{leads}.
-    \item \textbf{2FN:} Separación de \texttt{producto (sku)}, \texttt{oferta\_proveedor} y \texttt{especificacion\_producto}.
-    \item \textbf{3FN:} Precios (\(\times 1{,}65 / 1{,}52 / 1{,}42\)) y faltantes críticos calculados en \textbf{2 vistas} sin redundancia.
+    \item Los atributos repetidos pasan a filas por SKU.
+    \item Se separan producto, oferta y especificación.
+    \item Precios y brechas se calculan en vistas.
 \end{itemize}
 \end{block}
 \end{columns}
 \end{frame}
 
 % --- SLIDE 7: RESULTADOS SQL CATALOGO Y PRECIOS ---
-\begin{frame}{6. Evidencia SQL (Q1--Q3): Cobertura documental y precios}
+\begin{frame}{6. Demo localhost: cobertura documental y precios}
+\small \href{http://127.0.0.1:8000/}{\textbf{Abrir tablero}} \quad \texttt{python -m app} \quad
+\texttt{127.0.0.1:8000}
+\vspace{4pt}
 \begin{columns}[T]
 \column{0.49\textwidth}
 \begin{block}{Q1 y Q2: Cobertura real (511 SKUs / 133 fichas)}
@@ -176,7 +177,7 @@ Cuando falta una ficha técnica, la respuesta demora hasta \textbf{23,7 horas} e
 \scriptsize
 \begin{tabular}{lrrr}
 \toprule
-\textbf{Grupo} & \textbf{SKUs} & \textbf{Prom. Mín.} & \textbf{Ahorro acum.} \\
+\textbf{Grupo} & \textbf{SKUs} & \textbf{Prom. mín.} & \textbf{Diferencia} \\
 \midrule
 SOLAR Y BATERÍA & 4 & \$73.525 & \$62.500 \\
 PROYECTOR & 8 & \$51.800 & \$58.100 \\
@@ -199,26 +200,26 @@ PANEL LED & 17 & \$10.818 & \$32.000 \\
 \begin{block}{Q4--Q6: Embudo B2B y Cumplimiento}
 \footnotesize
 \begin{itemize}
-    \item \textbf{Embudo (Q4):} 25 prospectos sintéticos en 3 campañas (7 pendientes, 4 borradores IMAP, 6 enviados, 3 respuestas reales, 5 bloqueos).
-    \item \textbf{Ley 21.719 (Q5):} \textbf{0 prospecciones activas} sobre las 5 empresas bloqueadas (\texttt{SHEETS} / \texttt{IMAP\_INBOX}).
-    \item \textbf{Seguimientos (Q6):} 4 envíos elegibles ($\ge 3$ días hábiles); excluye respuestas automáticas.
+    \item \textbf{Embudo (Q4):} 25 casos simulados en 3 campañas. Hay 7 pendientes, 4 borradores, 6 en espera, 3 con respuesta humana y 5 bloqueados.
+    \item \textbf{Bloqueos (Q5):} \textbf{0 prospecciones activas} en las 5 empresas bloqueadas de la muestra.
+    \item \textbf{Seguimientos (Q6):} 4 elegibles al corte del 19/11. Una respuesta automática mantiene el caso en espera.
 \end{itemize}
 \end{block}
 \column{0.50\textwidth}
-\begin{block}{Q7: Impacto de las fichas en atención}
+\begin{block}{Q7: Simulación de atención según respaldo}
 \scriptsize
 \begin{tabular}{lrrr}
 \toprule
 \textbf{Estado ficha} & \textbf{Cons.} & \textbf{\% IA} & \textbf{Tiempo prom.} \\
 \midrule
 \texttt{COMPLETA} & 6 & \textbf{83,3\,\%} & \textbf{25,3 min} \\
-\texttt{CONSULTA\_GRAL} & 2 & 50,0\,\% & 75,1 min \\
+Consulta general & 2 & 50,0\,\% & 75,1 min \\
 \texttt{BORRADOR} & 9 & 0,0\,\% & 470,7 min \\
 \texttt{SIN\_RESPALDO} & 7 & 0,0\,\% & 1.419,0 min \\
 \bottomrule
 \end{tabular}
 \vspace{4pt}
-\newline {\footnotesize Las fichas aprobadas cierran el ciclo entre módulos.}
+\newline {\footnotesize Tiempos medios en 24 consultas sintéticas.}
 \end{block}
 \end{columns}
 \end{frame}
@@ -230,10 +231,10 @@ PANEL LED & 17 & \$10.818 & \$32.000 \\
 \begin{block}{Logros verificados y limitaciones honestas}
 \footnotesize
 \begin{itemize}
-    \item \textbf{Reproducible en 1 paso:} \texttt{python db/ejecutar.py} (0 errores FK) + 66 tests unitarios n8n/Worker aprobados.
+    \item \textbf{Tablero reproducible:} \texttt{python -m app} muestra Q1--Q7 desde SQLite con 0 violaciones de claves foráneas.
     \item \textbf{Limitación 1:} 131 de 133 fichas siguen en \texttt{BORRADOR} hasta recopilar temp./certificaciones de proveedores.
     \item \textbf{Limitación 2:} Chat de atención modelado en BD 3FN (fase futura tras aprobar fichas).
-    \item \textbf{Limitación 3:} Credenciales productivas OAuth/IA/IMAP en \texttt{privado/config.env} para activación final.
+    \item \textbf{Limitación 3:} La activación productiva de n8n requiere el servidor y las credenciales de la empresa.
 \end{itemize}
 \end{block}
 \column{0.45\textwidth}
@@ -245,8 +246,8 @@ PANEL LED & 17 & \$10.818 & \$32.000 \\
 \midrule
 Juan Pablo Godoy & Contexto y problema & 1:30 \\
 Vicente Soto & BPMN y flujos n8n & 1:40 \\
-Joaquín Tapia & Modelo ER 3FN & 1:40 \\
-Claudio Vera & SQL, Q1--Q7 y cierre & 1:40 \\
+Joaquín Tapia & Modelo ER y tablero & 1:40 \\
+Claudio Vera & SQL y cierre & 1:40 \\
 \bottomrule
 \end{tabular}
 \end{block}

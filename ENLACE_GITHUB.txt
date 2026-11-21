@@ -1,5 +1,5 @@
 URL_REPOSITORIO: https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux
-TAG_VERSION: v1.0-e2
-COMMIT_SHA: ver tag v1.0-e2 (hash exacto adjunto en ENLACE_GITHUB.txt de Aula)
+TAG_VERSION: v1.1-e2
+COMMIT_SHA: ver tag v1.1-e2 (hash exacto adjunto en ENLACE_GITHUB.txt de Aula)
 CASO_PYME: Maxilux (continuidad justificada desde Unter E1 en docs/00-caso-pyme.md)
 EQUIPO: Grupo 2 - Paralelo 100 (Godoy, Soto, Tapia, Vera)

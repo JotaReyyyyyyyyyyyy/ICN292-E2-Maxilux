@@ -118,7 +118,7 @@
 
 \vspace{0.6cm}
 \textbf{Repositorio GitHub (Entrega 2):}\\[0.15cm]
-{\small \url{https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux} \quad (\texttt{tag: v1.0-e2})}
+{\small \url{https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux} \quad (\texttt{tag: v1.1-e2})}
 
 \vfill
 \textsc{\theSemester}\\[0.35cm]
@@ -141,10 +141,10 @@
 \begin{itemize}
     \item \textbf{Base de datos relacional normalizada a 3FN} en SQLite~3 (\path{db/schema.sql} y \path{db/seed.sql}), con \textbf{16 tablas y 2 vistas calculadas} que unifican catálogo multi-proveedor, especificaciones técnicas sanitizadas, campañas/prospecciones con trazabilidad Ley~21.719 y registro de consultas/derivaciones, cargada con datos anonimizados coherentes con la escala real de la empresa y 0 violaciones de integridad referencial.
     \item \textbf{Automatización modular en n8n} (\path{automatizacion/}): cuatro flujos orquestados para prospección B2B (búsqueda IA con verificación literal de dominio, revisión humana en Google Sheets, creación idempotente de borradores IMAP sin envío automático, seguimiento tras 3 días hábiles y reporte PDF semanal por Telegram) más el flujo generador de fichas técnicas propias en XeLaTeX ($\le 2$ páginas) con filtro anti-marcas de proveedores.
-    \item \textbf{Analítica de negocio reproducible} mediante 7 consultas SQL (\path{db/consultas.sql}) ejecutables en entorno limpio con un solo comando (\texttt{python db/ejecutar.py}).
+    \item \textbf{Tablero KPI en localhost} con cobertura de catálogo, prospección y atención de consultas. Usa las siete consultas de \path{db/consultas.sql} y la base SQLite de demostración. Se inicia con \texttt{python -m app}.
 \end{itemize}
 
-\textbf{Resultados medibles verificados.} La solución consolidó los \textbf{511 SKUs} (14 grupos) en \textbf{133 fichas técnicas PDF} sin fuga alguna de marcas de proveedores, elevando la cobertura con respaldo técnico al \textbf{63,2\,\% (323 SKUs)} e identificando con exactitud que la brecha hacia la publicación final radica en dos atributos críticos (\textbf{Temperatura de operación} en 15,1\,\% y \textbf{Certificaciones} en 19,0\,\%, dejando 131 fichas en \texttt{BORRADOR} y 2 \texttt{APROBADA}). La vista de precios corrige la anomalía del Excel evitando un sobrecosto unitario acumulado de \textbf{\$197.000 CLP} sobre 32 SKUs multi-oferta sintéticos, la auditoría Ley~21.719 registra \textbf{0 infracciones} sobre empresas bloqueadas, y el análisis de consultas evidencia que contar con fichas aprobadas eleva la resolución autónoma al \textbf{83,3\,\%} reduciendo el tiempo promedio a \textbf{25,3 minutos}.
+\textbf{Resultados medibles verificados.} La solución consolidó los \textbf{511 SKUs} (14 grupos) en \textbf{133 fichas técnicas PDF} sin fuga alguna de marcas de proveedores, elevando la cobertura con respaldo técnico al \textbf{63,2\,\% (323 SKUs)} e identificando con exactitud que la brecha hacia la publicación final radica en dos atributos críticos (\textbf{Temperatura de operación} en 15,1\,\% y \textbf{Certificaciones} en 19,0\,\%, dejando 131 fichas en \texttt{BORRADOR} y 2 \texttt{APROBADA}). La vista de precios corrige la anomalía del Excel evitando un sobrecosto unitario acumulado de \textbf{\$197.000 CLP} sobre 32 SKUs multi-oferta sintéticos, la auditoría Ley~21.719 registra \textbf{0 infracciones} sobre empresas bloqueadas, y la simulación de consultas con ficha completa registra una resolución autónoma del \textbf{83,3\,\%} con un tiempo promedio de \textbf{25,3 minutos}.
 
 \begin{table}[H]
 \centering
@@ -238,7 +238,7 @@ La prospección se descompuso en cuatro flujos exportados en \path{automatizacio
 \caption{Trazabilidad entre flujos n8n y reglas del BPMN TO-BE de prospección.}
 \end{table}
 
-\textbf{Auditoría y mejoras aplicadas al paquete de prospección.} Durante la revisión técnica de \texttt{Maxilux\_para\_JuanPablo.zip} se detectaron y corrigieron cinco brechas críticas en la copia operativa recreada sobre la cuenta Google Sheets del equipo: (a) ampliación de los prompts y la \emph{skill} comercial desde 6 líneas parciales hacia las \textbf{14 familias reales del catálogo} (incluyendo Solar y Batería con 22,7\,\% de SKUs, Alumbrado Público y Postes); (b) ajuste del modelo nativo \texttt{openai}/\texttt{gpt-6-luna} a \texttt{reasoning.effort=medium} (manteniendo Gemini como alternativa opcional) y aumento del tope mensual desde \texttt{USD 0.50} a \texttt{LLM\_BUDGET\_USD=5.00} para cubrir múltiples lotes sin bloqueo prematuro; (c) parametrización opcional de la firma web (\texttt{MAIL\_WEBSITE}) mientras no se confirme la web pública; (d) limpieza de una referencia residual externa en \texttt{SKILL.md}; y (e) generación de \texttt{flujos-local/} y lanzador Windows sin Docker, manteniendo los \textbf{66 tests unitarios} y validaciones de seguridad (\texttt{npm run check}) aprobados al 100\,\%.
+\textbf{Auditoría y mejoras aplicadas al paquete de prospección.} Durante la revisión técnica de \path{Maxilux_para_JuanPablo.zip} se detectaron y corrigieron cinco brechas críticas en la copia operativa recreada sobre la cuenta Google Sheets del equipo: (a) ampliación de los prompts y la \emph{skill} comercial desde 6 líneas parciales hacia las \textbf{14 familias reales del catálogo} (incluyendo Solar y Batería con 22,7\,\% de SKUs, Alumbrado Público y Postes); (b) ajuste del modelo nativo \texttt{openai}/\texttt{gpt-6-luna} a \texttt{reasoning.effort=medium} (manteniendo Gemini como alternativa opcional) y aumento del tope mensual desde \texttt{USD 0.50} a \texttt{LLM\_BUDGET\_USD=5.00} para cubrir múltiples lotes sin bloqueo prematuro; (c) parametrización opcional de la firma web (\texttt{MAIL\_WEBSITE}) mientras no se confirme la web pública; (d) limpieza de una referencia residual externa en \texttt{SKILL.md}; y (e) generación de \texttt{flujos-local/} y lanzador Windows sin Docker, manteniendo los \textbf{66 tests unitarios} y validaciones de seguridad (\texttt{npm run check}) aprobados al 100\,\%.
 
 \subsection{Proceso 2: Generación consolidada de fichas técnicas}
 
@@ -445,7 +445,7 @@ FOCO & 4 & 1 & 0 & 1 & 0 & 4 & 0,0\,\% \\
 \scriptsize
 \begin{tabularx}{\textwidth}{Lrrrrrr}
 \toprule
-\textbf{Grupo} & \textbf{SKUs multioferta} & \textbf{Prom. costo mín.} & \textbf{Prom. costo máx.} & \textbf{Sobrecosto evitado} & \textbf{Prom. Proyecto ($\times 1{,}65$)} & \textbf{Prom. Final ($\times 1{,}42$)} \\
+\textbf{Grupo} & \textbf{\shortstack{SKU\\multioferta}} & \textbf{\shortstack{Costo mín.\\prom.}} & \textbf{\shortstack{Costo máx.\\prom.}} & \textbf{\shortstack{Diferencia\\acumulada}} & \textbf{\shortstack{Proyecto\\($\times 1{,}65$)}} & \textbf{\shortstack{Final\\($\times 1{,}42$)}} \\
 \midrule
 SOLAR Y BATERÍA & 4 & \$73.525 & \$89.150 & \$62.500 & \$121.316 & \$104.406 \\
 PROYECTOR & 8 & \$51.800 & \$59.063 & \$58.100 & \$85.470 & \$73.556 \\
@@ -508,7 +508,7 @@ PANEL LED & 17 & \$10.818 & \$12.700 & \$32.000 & \$17.849 & \$15.361 \\
 \caption{Resultado real ejecutado de Q6: cola automática de seguimientos vencidos (corte 2026-11-19).}
 \end{table}
 
-\textbf{Interpretación de negocio (Q4--Q6):} El embudo muestra \textbf{7 prospectos pendientes} (7/100 de cupo operativo), \textbf{4 borradores en Drafts}, \textbf{6 enviados en espera} y \textbf{3 respuestas humanas reales}. En \textbf{Q5}, todos los bloqueos (\texttt{SHEETS} e \texttt{IMAP\_INBOX}) exhiben cero prospecciones activas indebidas. En \textbf{Q6}, la consulta identifica las 4 empresas elegibles tras 3 días hábiles y excluye correctamente la respuesta automática \emph{out-of-office} de \texttt{MXL-PROS-008} (consistente con \texttt{classify()} en \texttt{src/mail.mjs}).
+\textbf{Interpretación de negocio (Q4--Q6):} El embudo muestra \textbf{7 prospectos pendientes} (7/100 de cupo operativo), \textbf{4 borradores en Drafts}, \textbf{6 enviados en espera} y \textbf{3 respuestas humanas simuladas}. En \textbf{Q5}, todos los bloqueos (\texttt{SHEETS} e \texttt{IMAP\_INBOX}) exhiben cero prospecciones activas indebidas. En \textbf{Q6}, la consulta identifica cuatro empresas al corte del 19/11 contando lunes a viernes según plazo de campaña. Una respuesta automática no cierra el seguimiento, como en el caso de la respuesta \emph{out-of-office} de \texttt{MXL-PROS-008} (consistente con \texttt{classify()} en \texttt{src/mail.mjs}).
 
 \subsubsection*{Q7: Impacto de la disponibilidad documental en atención de clientes}
 
@@ -525,10 +525,10 @@ PANEL LED & 17 & \$10.818 & \$12.700 & \$32.000 & \$17.849 & \$15.361 \\
 \texttt{SIN\_RESPALDO} & 7 & 0 & 0,0\,\% & 0 & 6 & 1419,0 \\
 \bottomrule
 \end{tabularx}
-\caption{Resultado real ejecutado de Q7: efecto del estado de ficha técnica en la atención.}
+\caption{Resultados SQL de Q7 sobre 24 consultas sintéticas, agrupadas por respaldo documental.}
 \end{table}
 
-\textbf{Interpretación de negocio:} Q7 cuantifica el cierre del sistema entre módulos: disponer de fichas aprobadas (\texttt{COMPLETA}) permite resolver automáticamente el \textbf{83,3\,\%} de las consultas en segundos y promedia \textbf{25,3 minutos} considerando la derivación comercial; en contraste, las consultas sobre productos en \texttt{BORRADOR} promedian \textbf{470,7 min} ($\sim$7,8\,h) y las \texttt{SIN\_RESPALDO} escalan a Finanzas/Proveedores alcanzando \textbf{1.419,0 min} ($\sim$23,7\,h).
+\textbf{Interpretación de negocio:} En la simulación, cinco de seis consultas con ficha completa se registran como resueltas por IA (83,3\,\%). El grupo promedia 25,3 min, frente a 470,7 min con ficha en borrador y 1.419,0 min sin respaldo. La comparación orienta la prioridad de fichas y requiere validación con consultas reales.
 
 %==============================================================
 \section{Guía breve de reproducibilidad}
@@ -537,12 +537,12 @@ PANEL LED & 17 & \$10.818 & \$12.700 & \$32.000 & \$17.849 & \$15.361 \\
 Todo el trabajo del repositorio puede auditarse de forma autónoma siguiendo la guía detallada de \path{README.md} (sección \emph{Prueba de oro}). En cualquier computador con Python~3 o SQLite~3 instalado, sin dependencias externas ni acceso a cuentas privadas:
 
 \begin{lstlisting}[language=bash,caption={Comandos de verificación limpia (prueba de oro).}]
-git clone https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux
+git clone --branch v1.1-e2 https://github.com/JotaReyyyyyyyyyyyy/ICN292-E2-Maxilux
 cd ICN292-E2-Maxilux
-python db/ejecutar.py
+python -m app
 \end{lstlisting}
 
-El ejecutor carga \path{db/schema.sql}, inserta los datos anonimizados de \path{db/seed.sql}, valida \texttt{PRAGMA foreign\_key\_check} en cero e imprime las salidas tabulares de \path{db/consultas.sql} (\texttt{Q1}--\texttt{Q7}). Adicionalmente, la carpeta \path{automatizacion/prospeccion/} contiene las instrucciones para desplegar el entorno completo n8n + Worker + Google Sheets + IMAP + Telegram mediante Docker Compose o ejecución local en Windows.
+Al abrir \url{http://127.0.0.1:8000/}, \textbf{Resumen} muestra cobertura técnica, fichas aprobadas, prospectos por revisar y bloqueos activos. \textbf{Catálogo}, \textbf{Prospección} y \textbf{Atención} muestran el detalle. Las consultas se calculan sobre la base de demostración en memoria, sin credenciales. Las fórmulas, los criterios de decisión y los responsables están en \path{docs/06-kpi-dashboard.md}. Para repetir la verificación por consola, ejecuta \texttt{python db/ejecutar.py}. Los flujos n8n exportados y sus dependencias están descritos en \path{docs/05-automatizacion-n8n.md}.
 
 %==============================================================
 \section{Lecciones aprendidas, marco ético y limitaciones honestas}
