@@ -1,0 +1,407 @@
+{
+  "id": "MAXILUX_FLUJO_4",
+  "name": "Maxilux 4 - Reporte semanal PDF por Telegram",
+  "active": false,
+  "nodes": [
+    {
+      "id": "9ab14a34-7734-4428-a7c4-169eec198c81",
+      "name": "Propósito",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -72,
+        -205
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 148,
+        "color": 6,
+        "content": "## 4. Reporte semanal PDF por Telegram\nConsolida los movimientos de la semana y entrega el PDF con portada al chat de Telegram configurado."
+      }
+    },
+    {
+      "id": "6e25194b-8762-4356-96ca-3af8eb59e5f3",
+      "name": "Ruta sin trabajo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        668,
+        230
+      ],
+      "parameters": {
+        "width": 350,
+        "height": 112,
+        "color": 7,
+        "content": "### Rama «falso»\nPeríodo ya entregado. Se publica el estado sin duplicar el PDF."
+      }
+    },
+    {
+      "id": "936ef413-beb2-4df4-8eb3-eedf426928c4",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "bd62483f-02f6-4e0a-9651-4e54d0aa512f",
+      "name": "Leer decisiones y aplicar bloqueos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "01273934-4dfc-45e0-9d1c-718d01c0a555",
+      "name": "Domingos 08 Santiago",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        170
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d6fc1f08-0104-43e7-920a-cdb7b30cf22a",
+      "name": "Determinar período del reporte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/period",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "e41bb974-30cd-4ce3-9c8f-fabf91942eb0",
+      "name": "¿Falta entregar el reporte?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7f0df7e-ccbf-472e-b02b-c0357c8be1d8",
+              "leftValue": "={{ $json.alreadySent === false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c15ccfa2-88f6-4f0e-8ac5-091f521be891",
+      "name": "Calcular indicadores y detalle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/summarize",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "416ded55-c947-4875-b72f-f91790915031",
+      "name": "Compilar el PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/render",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "5f262f8a-7131-45ba-969b-025a45b69ad3",
+      "name": "Entregar PDF por Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/deliver",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "a84f8aaf-cfc7-4332-a359-84b1a4e207f3",
+      "name": "Cerrar y actualizar Actividad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        170
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/4/steps/publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domingos 08 Santiago": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer decisiones y aplicar bloqueos": {
+      "main": [
+        [
+          {
+            "node": "Determinar período del reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determinar período del reporte": {
+      "main": [
+        [
+          {
+            "node": "¿Falta entregar el reporte?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Falta entregar el reporte?": {
+      "main": [
+        [
+          {
+            "node": "Calcular indicadores y detalle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cerrar y actualizar Actividad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular indicadores y detalle": {
+      "main": [
+        [
+          {
+            "node": "Compilar el PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilar el PDF": {
+      "main": [
+        [
+          {
+            "node": "Entregar PDF por Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entregar PDF por Telegram": {
+      "main": [
+        [
+          {
+            "node": "Cerrar y actualizar Actividad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago",
+    "saveExecutionProgress": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 660
+  },
+  "pinData": {},
+  "versionId": "840eac06-0e48-47ed-bc59-d8895715b878",
+  "tags": []
+}

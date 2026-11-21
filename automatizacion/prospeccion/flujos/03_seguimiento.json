@@ -1,0 +1,407 @@
+{
+  "id": "MAXILUX_FLUJO_3",
+  "name": "Maxilux 3 - Seguimiento y respuestas",
+  "active": false,
+  "nodes": [
+    {
+      "id": "3b98357a-4306-45af-a652-04684260d283",
+      "name": "Propósito",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -72,
+        -205
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 148,
+        "color": 3,
+        "content": "## 3. Seguimiento y respuestas\nCruza Entrada y Enviados con el registro. Prepara seguimientos pendientes de aprobación cuando vence el plazo."
+      }
+    },
+    {
+      "id": "cbfbc9b1-5c64-477c-a760-d3a895a9140c",
+      "name": "Ruta sin trabajo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1068,
+        230
+      ],
+      "parameters": {
+        "width": 350,
+        "height": 112,
+        "color": 7,
+        "content": "### Rama «falso»\nSin seguimientos vencidos. Se publican los movimientos detectados."
+      }
+    },
+    {
+      "id": "906d8d69-6c85-4427-bed8-428ed8b10a4e",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e5ae06b1-9a23-4926-a90e-cdb7ed8575cf",
+      "name": "Leer decisiones y aplicar bloqueos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "790ca7c4-6014-496e-a9d7-43ff6229b34d",
+      "name": "Revisar cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        170
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "decfe68e-0587-435c-87de-b636bb96aaa2",
+      "name": "Leer Entrada y Enviados",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/mailbox",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "08ad3d6c-413e-4205-a4ef-a149aef88360",
+      "name": "Registrar respuestas, envíos y bajas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/reconcile",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "90406060-74bd-4ffc-9f3c-7eb3db808129",
+      "name": "Calcular seguimientos vencidos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/due",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "3c0d281a-f3a5-41c1-b601-6d4be9ab25c4",
+      "name": "¿Hay seguimientos vencidos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1442586a-b164-4e37-b59c-ff2db2df549a",
+              "leftValue": "={{ $json.due > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "afe4fb5d-2ebd-4288-8e2b-250b5b1aaa9e",
+      "name": "Redactar y dejar en revisión",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/queue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "8ce0e09e-42de-48e5-9e47-c4b64b5689ed",
+      "name": "Actualizar Seguimientos en Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        170
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/3/steps/publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer decisiones y aplicar bloqueos": {
+      "main": [
+        [
+          {
+            "node": "Leer Entrada y Enviados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Entrada y Enviados": {
+      "main": [
+        [
+          {
+            "node": "Registrar respuestas, envíos y bajas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar respuestas, envíos y bajas": {
+      "main": [
+        [
+          {
+            "node": "Calcular seguimientos vencidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular seguimientos vencidos": {
+      "main": [
+        [
+          {
+            "node": "¿Hay seguimientos vencidos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay seguimientos vencidos?": {
+      "main": [
+        [
+          {
+            "node": "Redactar y dejar en revisión",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Seguimientos en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar y dejar en revisión": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Seguimientos en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago",
+    "saveExecutionProgress": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 660
+  },
+  "pinData": {},
+  "versionId": "5569f84a-36fa-48a6-ba6d-c9b2b59889c6",
+  "tags": []
+}

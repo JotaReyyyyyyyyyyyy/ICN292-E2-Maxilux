@@ -1,0 +1,376 @@
+{
+  "id": "MAXILUX_FLUJO_1",
+  "name": "Maxilux 1 - Prospección de clientes",
+  "active": false,
+  "nodes": [
+    {
+      "id": "b250d7ed-ad7d-44e2-a696-14cb278a3360",
+      "name": "Propósito",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -72,
+        -205
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 148,
+        "color": 4,
+        "content": "## 1. Prospección de clientes\nBusca hasta 10 empresas por ejecución y deja cada resultado en Pendiente en la misma planilla."
+      }
+    },
+    {
+      "id": "9d78f0da-40f5-4a17-9ade-d911b72a7a34",
+      "name": "Ruta sin trabajo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        668,
+        230
+      ],
+      "parameters": {
+        "width": 350,
+        "height": 112,
+        "color": 7,
+        "content": "### Rama «falso»\nCupo completo. Se publica el estado sin llamar a la IA."
+      }
+    },
+    {
+      "id": "4dcdaab2-6706-4b8f-b70e-dd5f2548acc9",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "24192897-3301-4f14-8b20-d1d1cc7f277d",
+      "name": "Leer decisiones y aplicar bloqueos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "55488a75-07c3-4d31-a356-029d38e0300d",
+      "name": "Calcular cupo disponible",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/capacity",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "6fa1b19a-c6e4-4177-922e-f1afbabc257e",
+      "name": "¿Hay cupo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6d8c1f9f-ab32-4db1-ad67-265af91d162d",
+              "leftValue": "={{ $json.slots > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "66e872db-1d76-497d-bdc0-3a449728a747",
+      "name": "Buscar empresas con IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/discover",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "bf9f823e-d1a8-4d32-92e9-37ad02270a7d",
+      "name": "Validar correos y fuentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/verify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "03d5952d-8c69-4dbe-9b37-e461f9bc7df8",
+      "name": "Redactar y registrar prospectos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/compose",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "d0af4820-ac33-4c6d-84d7-55209f5e60be",
+      "name": "Actualizar Prospectos en Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        170
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/flows/1/steps/publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer decisiones y aplicar bloqueos": {
+      "main": [
+        [
+          {
+            "node": "Calcular cupo disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular cupo disponible": {
+      "main": [
+        [
+          {
+            "node": "¿Hay cupo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay cupo?": {
+      "main": [
+        [
+          {
+            "node": "Buscar empresas con IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Prospectos en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar empresas con IA": {
+      "main": [
+        [
+          {
+            "node": "Validar correos y fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar correos y fuentes": {
+      "main": [
+        [
+          {
+            "node": "Redactar y registrar prospectos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar y registrar prospectos": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Prospectos en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago",
+    "saveExecutionProgress": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 660
+  },
+  "pinData": {},
+  "versionId": "d2d51287-afd4-4102-8f03-254e78329f0f",
+  "tags": []
+}

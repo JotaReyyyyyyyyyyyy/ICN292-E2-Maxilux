@@ -1,0 +1,1205 @@
+{
+  "id": "MAXILUX_FICHAS",
+  "active": false,
+  "name": "Maxilux · Fichas técnicas (generar desde filas NUEVO)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "00000001-4a1b-4c2d-8e3f-000000000001",
+      "name": "Ejecutar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==== CONFIGURACIÓN: edita solo estos valores ====\nreturn [{ json: {\n  SHEET_ID: 'REEMPLAZAR_SHEET_ID',      // planilla \"Maxilux – Catálogo de productos y fichas\"\n  CARPETA_FICHAS_ID: 'REEMPLAZAR_CARPETA_FICHAS_ID',         // Drive: Maxilux/Fichas Maxilux\n  EXTRAER_URL: 'http://127.0.0.1:8789/extraer',             // lectura local de HTML y PDF por zonas\n  LATEX_URL: 'http://127.0.0.1:8789/builds/sync',             // servicio que compila LaTeX -> PDF\n  LOGO_URL: 'local-logo',                                                    // URL pública del logo PNG (vacío = logo en texto)\n  EMPRESA: 'Maxilux',\n  WEB: 'www.maxilux.cl',\n  CONTACTO: '',                                                    // ej: ventas@... · +56 9 ...\n}}];"
+      },
+      "id": "00000002-4a1b-4c2d-8e3f-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "00000003-4a1b-4c2d-8e3f-000000000003",
+      "name": "Leer catálogo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1540,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const nuevas = $input.all()\n  .filter(i => String(i.json.Estado || '').trim().toUpperCase() === 'NUEVO')\n  .filter(i => String(i.json.Fuente_URL_o_archivo || '').trim() !== '');\nif (!nuevas.length) return [];   // nada que hacer\nreturn nuevas.map(i => ({ json: i.json }));"
+      },
+      "id": "00000004-4a1b-4c2d-8e3f-000000000004",
+      "name": "Filas NUEVO",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "00000005-4a1b-4c2d-8e3f-000000000005",
+      "name": "Una por una",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "00000006-4a1b-4c2d-8e3f-000000000006",
+      "name": "Catálogo actual",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2200,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const fila = $('Una por una').first().json;\nconst fuente = String(fila.Fuente_URL_o_archivo).trim();\n// ¿Es un archivo de Google Drive? (link /file/d/ID, ?id=ID o un ID suelto)\nlet driveId = null;\nconst m = fuente.match(/\\/d\\/([a-zA-Z0-9_-]{20,})/) || fuente.match(/[?&]id=([a-zA-Z0-9_-]{20,})/);\nif (m) driveId = m[1];\nelse if (/^[a-zA-Z0-9_-]{25,}$/.test(fuente)) driveId = fuente;\nreturn [{ json: { row_number: fila.row_number, fuente, es_drive: !!driveId, driveId } }];"
+      },
+      "id": "00000007-4a1b-4c2d-8e3f-000000000007",
+      "name": "Preparar fuente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2b3c4-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.es_drive }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00000008-4a1b-4c2d-8e3f-000000000008",
+      "name": "¿Archivo en Drive?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.driveId }}?alt=media&supportsAllDrives=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "00000009-4a1b-4c2d-8e3f-000000000009",
+      "name": "Descargar de Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        100
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.fuente }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "00000010-4a1b-4c2d-8e3f-000000000010",
+      "name": "Descargar página",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst meta = item.binary?.data;\nconst fail = error => [{ json: { error } }];\nif (!meta) return fail('La fuente no devolvió un archivo legible.');\nconst data = await this.helpers.getBinaryDataBuffer(0, 'data');\nif (!data.length || data.length > 12 * 1024 * 1024) return fail('Fuente vacía o superior a 12 MB.');\nconst mime = meta.mimeType || '';\nlet kind;\nif (data.subarray(0, 1024).includes(Buffer.from('%PDF-'))) kind = 'pdf';\nelse if (/html/i.test(mime) || /<(?:!doctype html|html|head|body|h1)\\b/i.test(data.subarray(0, 4096).toString('utf8'))) kind = 'web';\nif (!kind) return fail('Formato sin texto compatible. Usa una página de producto o un PDF con texto seleccionable.');\nreturn [{ json: { kind, content: data.toString('base64') } }];"
+      },
+      "id": "00000011-4a1b-4c2d-8e3f-000000000011",
+      "name": "Detectar formato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2b3c4-0000-4000-8000-000000000005",
+              "leftValue": "={{ Boolean($json.kind) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00000012-4a1b-4c2d-8e3f-000000000012",
+      "name": "¿Formato compatible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3300,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.EXTRAER_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 75000
+        }
+      },
+      "id": "00000013-4a1b-4c2d-8e3f-000000000013",
+      "name": "Leer zonas y tablas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Rules applied to evidence from a single product document.\r\nconst FAMILIAS = [\r\n  ['Campana industrial', 'Campana LED industrial', /\\b(?:campana|high\\s*bay)\\b/i],\r\n  ['Proyector', 'Proyector LED', /\\b(?:proyector|reflector led|floodlight)\\b/i],\r\n  ['Otro / especializado', 'Luminaria estanca LED', /\\b(?:estanc[ao]|waterproof|vapor tight)\\b/i],\r\n  ['Emergencia', 'Luminaria LED de emergencia', /\\b(?:emergencia|emergency light)\\b/i],\r\n  ['Panel', 'Panel LED', /\\bpanel\\b/i],\r\n  ['Tubo', 'Tubo LED', /\\b(?:tubo|tube)\\b/i],\r\n  ['Ampolleta', 'Ampolleta LED', /\\b(?:ampolleta|bombilla|bulb)\\b/i],\r\n  ['Otro / especializado', 'Luminaria LED', /\\b(?:luminaria|luminaire|light fixture)\\b/i],\r\n];\r\n\r\nconst RULES = [\r\n  ['Potencia_W', /^(?:potencia(?: nominal| consumida| electrica)?|consumo de energia|power consumption|wattage)$/],\r\n  ['Flujo_lm', /^(?:flujo luminoso(?: nominal)?|lumens|lumenes|luminous flux)$/],\r\n  ['Eficacia_lm_W', /^(?:eficacia (?:luminica|luminosa)(?: .*?)?|luminous efficacy(?: .*?)?)$/],\r\n  ['CCT_K', /^(?:cct|temperatura de color(?: correlacionada)?(?: \\(nominal\\))?|correlated color temperature(?: \\(nom\\))?)$/],\r\n  ['CRI', /^(?:cri|irc|indice de (?:produccion|reproduccion) de color(?: \\((?:irc|cri)\\))?|color rendering index(?: \\(cri\\))?)$/],\r\n  ['Tension_V', /^(?:tension(?: de alimentacion)?|voltaje(?: de entrada)?|input voltage)$/],\r\n  ['Frecuencia_Hz', /^(?:frecuencia(?: de linea)?|line frequency)$/],\r\n  ['IP', /^(?:ip|grado de proteccion|codigo de proteccion de ingreso|ingress protection code)$/],\r\n  ['IK', /^(?:ik|resistencia a(?:l|) impactos?|codigo de proteccion de impacto mec\\.?|mech\\. impact protection code)$/],\r\n  ['Angulo_haz', /^(?:angulo (?:de apertura|del haz)|ampliacion del haz de luz de la luminaria|luminaire light beam spread|beam angle of light source)$/],\r\n  ['Vida_util_h', /^(?:vida (?:util|media)|rated lifetime)$/],\r\n  ['Dimensiones_mm', /^(?:dimensiones|dimensions)(?: \\([^)]*\\))?$/],\r\n  ['Peso_kg', /^(?:peso(?: neto(?: \\(pieza\\))?)?|net weight(?: \\(piece\\))?)$/],\r\n  ['Material', /^(?:material(?: de la carcasa)?|housing material)$/],\r\n  ['Temp_operacion_C', /^(?:temperatura de (?:trabajo|operacion)|rango de temperatura ambiente|ambient temperature range)$/],\r\n  ['Garantia', /^(?:garantia|periodo de garantia|warranty period)$/],\r\n  ['CE', /^(?:marca ce|ce mark)$/],\r\n  ['ENEC', /^(?:marca enec|enec mark)$/],\r\n  ['RoHS', /^(?:cumple con el reglamento rohs de la ue|eu rohs compliant)$/],\r\n  ['codigo', /^(?:sku|codigo de pedido|order code)$/],\r\n  ['x:Factor de potencia', /^(?:factor (?:de )?potencia(?: \\(fraccion\\))?|power factor(?: \\(fraction\\))?)$/],\r\n  ['x:Flujo de emergencia', /^(?:flujo de emergencia|emergency luminous flux)$/],\r\n  ['x:Autonomía de emergencia', /^(?:duracion nominal de la iluminacion de emergencia(?: \\([^)]*\\))?|emergency duration)$/],\r\n  ['x:Regulable', /^(?:regulable|dimmable)$/],\r\n  ['x:Tipo óptico', /^(?:tipo optico|optic type)$/],\r\n  ['x:Conexión', /^(?:conexion|connection)$/],\r\n  ['x:Clase de seguridad', /^(?:clase de proteccion iec|protection class iec)$/],\r\n];\r\n\r\nconst norm = s => String(s).normalize('NFD').replace(/\\p{M}/gu, '').toLowerCase().trim();\r\nconst keyFor = label => RULES.find(([, pattern]) => pattern.test(norm(label).replace(/:$/, '')))?.[0];\r\nconst number = '[+<>≤≥~±-]?\\\\s*\\\\d[\\\\d.,]*';\r\nconst measurement = (units, lead = '') =>\r\n  new RegExp('^(?:' + lead + ')(' + number + '(?:(?:\\\\s*(?:-|–|a|or|o|to|/)\\\\s*)' + number +\r\n    ')*)(?:\\\\s*)(' + units + ')\\\\.?$', 'i');\r\nconst valuePatterns = {\r\n  Potencia_W: measurement('W'), Flujo_lm: measurement('lm'), Eficacia_lm_W: measurement('lm\\\\s*/\\\\s*W'),\r\n  CCT_K: measurement('K'), Peso_kg: measurement('kg'), Tension_V: measurement('V(?:AC|DC)?', 'AC\\\\s*|DC\\\\s*|'),\r\n  Frecuencia_Hz: measurement('Hz'), Vida_util_h: measurement('h(?:rs?\\\\.?|oras?)?'),\r\n  Temp_operacion_C: measurement('[°º]\\\\s*C'), Angulo_haz: measurement('°|degree\\\\(s\\\\)|grados?'),\r\n  Garantia: measurement('años?|years?|mes(?:es)?|months?'),\r\n  'x:Flujo de emergencia': measurement('lm'),\r\n  'x:Autonomía de emergencia': measurement('h|hora\\\\(s\\\\)|horas?|hours?'),\r\n};\r\n\r\nfunction sourceValue(key, raw, brand) {\r\n  const value = String(raw).trim();\r\n  if (!value || value.length > 180 || /https?:|www\\.|@|^[-–—]+$|^no aplica$|^not applicable$/i.test(value)) return '';\r\n  if (brand && brand.length >= 3 && norm(value).includes(norm(brand)) && key !== 'codigo') return '';\r\n  if (key in valuePatterns) {\r\n    const match = value.match(valuePatterns[key]);\r\n    if (!match) return '';\r\n    if (['Potencia_W', 'Flujo_lm', 'CCT_K', 'Vida_util_h', 'Peso_kg'].includes(key)) return match[1].trim();\r\n    if (key === 'Angulo_haz') return match[1].trim() + '°';\r\n    return value;\r\n  }\r\n  if (key === 'IP' || key === 'IK') return value.match(new RegExp('^' + key + '\\\\d{2}\\\\b', 'i'))?.[0].toUpperCase() || '';\r\n  if (key === 'CRI' || key === 'x:Factor de potencia') return new RegExp('^' + number + '$').test(value) ? value : '';\r\n  if (key === 'Dimensiones_mm') return /^\\d[\\d.,]*(?:\\s*[x×]\\s*\\d[\\d.,]*){1,2}\\s*mm$/i.test(value) ? value : '';\r\n  if (['CE', 'ENEC', 'RoHS'].includes(key)) return /^(?:si|yes|marca enec|enec mark)$/.test(norm(value)) ? key : '';\r\n  if (key === 'codigo') return /^[\\w.-]{3,40}$/.test(value) ? value : '';\r\n  if (key === 'x:Regulable') return /^(?:si|yes)$/.test(norm(value)) ? 'Sí' : /^no$/i.test(value) ? 'No' : '';\r\n  return value;\r\n}\r\n\r\nfunction extractFicha(doc) {\r\n  const invalid = motivo => ({ es_ficha_valida: false, motivo });\r\n  if (doc.ambiguous) return invalid('La página contiene más de un producto. Ingresa la URL del modelo o su PDF.');\r\n  const title = doc.title || [];\r\n  const family = FAMILIAS.find(([, , pattern]) => title.some(text => pattern.test(text)));\r\n  if (!family) return invalid('No se identificó un producto de iluminación en el título de la fuente.');\r\n  const [familia, nombre_base] = family;\r\n  const brand = doc.brand || '';\r\n  const evidence = new Map();\r\n  const notes = new Set();\r\n  const tables = [...(doc.tables || [])];\r\n\r\n  function remember(key, raw, section) {\r\n    if (!key) return;\r\n    const value = sourceValue(key, raw, brand);\r\n    if (!value) return;\r\n    const set = evidence.get(key) || new Map();\r\n    set.set(norm(value), { value, section });\r\n    evidence.set(key, set);\r\n  }\r\n\r\n  for (const [label, value, section] of doc.pairs || []) remember(keyFor(label), value, section);\r\n  for (const line of doc.lines || []) {\r\n    const colon = line.indexOf(':');\r\n    if (colon >= 0) remember(keyFor(line.slice(0, colon)), line.slice(colon + 1), 'Campo rotulado');\r\n  }\r\n\r\n  // A text PDF keeps table columns in physical reading order via pdftotext -layout.\r\n  const pdfRows = doc.rows || [];\r\n  for (let index = 0; index < pdfRows.length; index++) {\r\n    const row = pdfRows[index];\r\n    const keys = row.map(keyFor);\r\n    const looksLikeHeader = row.length >= 3 && keys.filter(Boolean).length >= 2\r\n      && !keys.some((key, i) => key && !keys[i + 1] && row[i + 1] && valuePatterns[key] && sourceValue(key, row[i + 1], brand));\r\n    if (looksLikeHeader && keys.includes('Potencia_W')) {\r\n      const block = [row];\r\n      const powerCol = keys.indexOf('Potencia_W');\r\n      while (pdfRows[index + 1] && sourceValue('Potencia_W', pdfRows[index + 1][powerCol] || '', brand)) {\r\n        block.push(pdfRows[++index]);\r\n      }\r\n      tables.push(block);\r\n      continue;\r\n    }\r\n    const next = pdfRows[index + 1];\r\n    if (looksLikeHeader && next?.length === row.length && !next.some(keyFor)\r\n      && keys.some((key, i) => valuePatterns[key] && sourceValue(key, next[i], brand))) {\r\n      keys.forEach((key, i) => remember(key, next[i], 'Tabla horizontal del PDF'));\r\n      index++;\r\n      continue;\r\n    }\r\n    for (let cell = 0; cell < row.length; cell++) {\r\n      const key = keys[cell];\r\n      if (key && row[cell + 1] && !keys[cell + 1]) {\r\n        remember(key, row[++cell], 'Columna del PDF');\r\n      } else if (row[cell].includes(':')) {\r\n        const colon = row[cell].indexOf(':');\r\n        remember(keyFor(row[cell].slice(0, colon)), row[cell].slice(colon + 1), 'Campo rotulado del PDF');\r\n      }\r\n    }\r\n  }\r\n  if (doc.code) remember('codigo', doc.code, 'Datos estructurados');\r\n\r\n  const common = {};\r\n  for (const [key, values] of evidence) {\r\n    if (values.size === 1) common[key] = values.values().next().value.value;\r\n    else notes.add('Valores contradictorios: ' + key.replace(/^x:/, '') + '.');\r\n  }\r\n\r\n  const groups = [];\r\n  for (const [header, ...rows] of tables) {\r\n    const keys = header.map(keyFor);\r\n    // In a clearly marked variant grid with kelvin in this column, \"Temperatura\" is color.\r\n    keys.forEach((key, i) => {\r\n      if (!key && norm(header[i]) === 'temperatura' && rows.length &&\r\n        rows.every(row => sourceValue('CCT_K', row[i] || '', brand))) keys[i] = 'CCT_K';\r\n    });\r\n    const power = keys.indexOf('Potencia_W');\r\n    if (power < 0 || keys.filter(Boolean).length < 2) continue;\r\n    if (!rows.length || rows.some(row => row.length !== header.length || !sourceValue('Potencia_W', row[power], brand))) {\r\n      return invalid('Se encontró una tabla de variantes con columnas desalineadas. Revisa la fuente.');\r\n    }\r\n    const variants = rows.map(row => Object.fromEntries(keys.flatMap((key, i) =>\r\n      key && sourceValue(key, row[i], brand) ? [[key, sourceValue(key, row[i], brand)]] : [])));\r\n    if (new Set(variants.map(row => JSON.stringify(row))).size !== variants.length) {\r\n      return invalid('La tabla contiene variantes que no se pueden distinguir con los campos reconocidos.');\r\n    }\r\n    groups.push({ variants, keys });\r\n  }\r\n  if (groups.length > 1) return invalid('La fuente contiene varias tablas de variantes sin una clave de unión verificable.');\r\n  if (!groups.length && title.some(line => /\\d+\\s*W\\s*(?:-|–|\\/|,)\\s*\\d+\\s*W\\b/i.test(line))) {\r\n    return invalid('La fuente anuncia varias potencias pero no se encontró una tabla alineada por modelo.');\r\n  }\r\n\r\n  const group = groups[0];\r\n  if (group) {\r\n    for (const key of group.keys.filter(Boolean)) delete common[key];\r\n    delete common.codigo;\r\n  }\r\n  const rows = group ? group.variants.map(row => ({ ...common, ...row })) : [common];\r\n  if (rows.some(row => ['Potencia_W', 'Flujo_lm', 'CCT_K', 'IP', 'Tension_V'].filter(key => row[key]).length < 2)) {\r\n    return invalid('La fuente tiene menos de dos especificaciones eléctricas, lumínicas o de protección verificables.');\r\n  }\r\n  if (/\\b(?:atex|cnex|antiexplosiv[oa]|anti-explosiv[oa])\\b/i.test(title.join(' '))) {\r\n    notes.add('Verificar por separado los marcados Ex, grados IP y certificados por modelo.');\r\n    delete common.IP;\r\n    for (const row of rows) delete row.IP;\r\n  }\r\n  const variantes = rows.map(row => {\r\n    const specs_extra = Object.entries(row).filter(([key]) => key.startsWith('x:'))\r\n      .map(([key, valor]) => ({ nombre: key.slice(2), valor }));\r\n    const nombre = [nombre_base, row.Potencia_W && row.Potencia_W + ' W',\r\n      row.CCT_K && row.CCT_K + ' K',\r\n      row['x:Autonomía de emergencia'] && familia !== 'Emergencia' && 'con emergencia'].filter(Boolean).join(' ');\r\n    const data = Object.fromEntries(Object.entries(row).filter(([key]) => !key.startsWith('x:') &&\r\n      !['codigo', 'CE', 'ENEC', 'RoHS'].includes(key)));\r\n    return { ...data, nombre, cod_proveedor: row.codigo || '',\r\n      Certificaciones: [row.CE, row.ENEC, row.RoHS].filter(Boolean).join('; '), specs_extra };\r\n  });\r\n  const missing = ['Potencia_W', 'Flujo_lm', 'CCT_K', 'IP'].filter(key => variantes.some(v => !v[key]));\r\n  if (missing.length) notes.add('Sin valor verificable en todos los modelos: ' + missing.join(', ') + '.');\r\n  return {\r\n    es_ficha_valida: true, motivo: '', nombre_base, familia, proveedor: brand, variantes,\r\n    faltantes_y_dudas: [...notes].join(' '),\r\n  };\r\n}\r\n\r\n\nconst doc = $input.first().json;\nreturn [{ json: doc.error ? { es_ficha_valida: false, motivo: doc.error } : extractFicha(doc) }];"
+      },
+      "id": "00000014-4a1b-4c2d-8e3f-000000000014",
+      "name": "Aplicar reglas de extracción",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generador de ficha Maxilux en LaTeX. Mismo código que el nodo \"Armar LaTeX\" del flujo n8n.\r\n// Recibe las filas (una o varias variantes del mismo grupo) y devuelve el .tex.\r\n// Regla central: un campo sin valor NO se imprime; un valor con \"VERIFICAR\" tampoco.\r\n\r\nconst CAMPOS = [\r\n  ['Potencia_W', 'Potencia', 'W'],\r\n  ['Flujo_lm', 'Flujo luminoso', 'lm'],\r\n  ['Eficacia_lm_W', 'Eficacia luminosa', 'lm/W'],\r\n  ['CCT_K', 'Temperatura de color', 'K'],\r\n  ['CRI', 'Reproducción cromática (IRC)', ''],\r\n  ['Tension_V', 'Tensión de alimentación', 'V'],\r\n  ['Frecuencia_Hz', 'Frecuencia', 'Hz'],\r\n  ['IP', 'Grado de protección', ''],\r\n  ['IK', 'Resistencia al impacto', ''],\r\n  ['Angulo_haz', 'Ángulo de apertura', ''],\r\n  ['Vida_util_h', 'Vida útil', 'h'],\r\n  ['Dimensiones_mm', 'Dimensiones', 'mm'],\r\n  ['Peso_kg', 'Peso', 'kg'],\r\n  ['Material', 'Material', ''],\r\n  ['Temp_operacion_C', 'Temperatura de operación', '°C'],\r\n  ['Garantia', 'Garantía', ''],\r\n  ['Certificaciones', 'Certificaciones', ''],\r\n];\r\n\r\nfunction esc(s) {\r\n  const map={'\\\\':'\\\\textbackslash{}','~':'\\\\textasciitilde{}','^':'\\\\textasciicircum{}','<':'\\\\textless{}','>':'\\\\textgreater{}','≤':'$\\\\leq$','≥':'$\\\\geq$','°':'\\\\textdegree{}','±':'\\\\textpm{}','Ф':'\\\\O{}','Φ':'\\\\O{}','φ':'\\\\O{}','×':'$\\\\times$','Ω':'$\\\\Omega$','μ':'$\\\\mu$'};\r\n  return String(s).replace(/[\\\\&%$#_{}~^<>≤≥°±ФΦφ×Ωμ]/g,c=>map[c]||'\\\\'+c);\r\n}\r\n\r\nconst vacio = (v) => v === undefined || v === null || String(v).trim() === '' || /VERIFICAR/i.test(String(v));\r\n\r\nfunction formatear(v, unidad) {\r\n  let s = String(v).trim();\r\n  // Los textos conservan sus separadores originales: 30.000 lm no son 30 lm.\r\n  if (typeof v === 'number') s = v.toLocaleString('es-CL');\r\n  if (unidad) {\r\n    const sinPalabras = s.replace(/\\b(a|x)\\b/gi, '').replace(/[Øø×]/g, '');\r\n    const yaTieneUnidad = s.toLowerCase().includes(unidad.toLowerCase()) || /[a-z]/i.test(sinPalabras);\r\n    if (!yaTieneUnidad) s += unidad.startsWith('°') ? ' ' + unidad : ' ' + unidad;\r\n  }\r\n  return s;\r\n}\r\n\r\nfunction extras(fila) {\r\n  let obj = {};\r\n  try { obj = typeof fila.Specs_extra_JSON === 'string' && fila.Specs_extra_JSON.trim() ? JSON.parse(fila.Specs_extra_JSON) : (fila.Specs_extra_JSON || {}); } catch (e) { obj = {}; }\r\n  return obj;\r\n}\r\n\r\n// Lista ordenada [clave, etiqueta, valorFormateado] solo con lo que existe.\r\nfunction specs(fila) {\r\n  const out = [];\r\n  for (const [k, et, u] of CAMPOS) if (!vacio(fila[k])) out.push([k, et, formatear(fila[k], u)]);\r\n  for (const [k, v] of Object.entries(extras(fila))) if (!vacio(v)) out.push(['x:' + k, k, String(v)]);\r\n  return out;\r\n}\r\n\r\nfunction nombreGrupo(filas) {\r\n  if (filas.length === 1) return filas[0].Nombre;\r\n  // prefijo común de palabras de los nombres\r\n  const partes = filas.map((f) => String(f.Nombre).split(/\\s+/));\r\n  const comun = [];\r\n  for (let i = 0; i < partes[0].length; i++) {\r\n    if (partes.every((p) => p[i] === partes[0][i])) comun.push(partes[0][i]); else break;\r\n  }\r\n  return comun.join(' ') || filas[0].Nombre;\r\n}\r\n\r\nfunction buildTex(filas, cfg) {\r\n  const f0 = filas[0];\r\n  const listas = filas.map(specs);\r\n  const mapa = listas.map((l) => Object.fromEntries(l.map(([k, , v]) => [k, v])));\r\n  const etiquetas = {};\r\n  listas.flat().forEach(([k, et]) => (etiquetas[k] = et));\r\n  const orden = [...new Set(listas.flat().map(([k]) => k))];\r\n\r\n  // Comunes: mismo valor en todas las variantes. Variables: difieren o faltan en alguna.\r\n  const comunes = orden.filter((k) => mapa.every((m) => m[k] !== undefined && m[k] === mapa[0][k]));\r\n  const variables = orden.filter((k) => !comunes.includes(k));\r\n\r\n  const filasComunes = comunes.map((k, i) =>\r\n    `${i % 2 ? '' : '\\\\rowcolor{mxgris}'}\\\\textbf{${esc(etiquetas[k])}} & ${esc(mapa[0][k])} \\\\\\\\`).join('\\n');\r\n\r\n  let tablaVariantes = '';\r\n  if (filas.length > 1) {\r\n    for (let offset = 0; offset < Math.max(variables.length, 1); offset += 3) {\r\n      const cols = variables.slice(offset, offset + 3);\r\n      const count = cols.length + 1;\r\n      const cellWidth = String.raw`>{\\raggedright\\arraybackslash}p{\\dimexpr\\linewidth/${count}-2\\tabcolsep\\relax}`;\r\n      const head = String.raw`\\rowcolor{mxazul}\\textcolor{white}{\\textbf{Código}}${cols.map(k => String.raw` & \\textcolor{white}{\\textbf{${esc(etiquetas[k])}}}`).join('')} \\\\`;\r\n      tablaVariantes += String.raw`\r\n\\Needspace{5\\baselineskip}\r\n\\section*{${offset ? 'Variantes disponibles (continuación)' : 'Variantes disponibles'}}\r\n\\begin{longtable}{${cellWidth.repeat(count)}}\r\n${head}\r\n\\endhead\r\n${filas.map((f, i) => String.raw`${i % 2 ? '' : '\\\\rowcolor{mxgris}'}${esc(f.SKU_Maxilux)}${cols.map(k => ' & ' + (mapa[i][k] !== undefined ? esc(mapa[i][k]) : '--')).join('')} \\\\`).join('\\n')}\r\n\\end{longtable}`;\r\n    }\r\n  }\r\n\r\n  const codigo = filas.length > 1 ? `${filas[0].SKU_Maxilux} a ${filas[filas.length - 1].SKU_Maxilux}` : f0.SKU_Maxilux;\r\n  const borrador = !filas.every(f => String(f.Estado).toUpperCase() === 'APROBADO' && f.Revisado_por && f.Fecha_aprobacion);\r\n  const logo = cfg.logo\r\n    ? '\\\\includegraphics[height=1.1cm]{logo.png}'\r\n    : '{\\\\fontsize{22}{24}\\\\selectfont\\\\bfseries\\\\color{mxazul}MAXI\\\\color{mxacento}LUX}';\r\n\r\n  return String.raw`\\documentclass[10pt,a4paper]{article}\r\n\\usepackage[utf8]{inputenc}\r\n\\usepackage[T1]{fontenc}\r\n\\usepackage[scaled]{helvet}\r\n\\renewcommand{\\familydefault}{\\sfdefault}\r\n\\usepackage[top=1.4cm,bottom=2.2cm,left=1.6cm,right=1.6cm]{geometry}\r\n\\usepackage[table]{xcolor}\r\n\\usepackage{graphicx,array,longtable,fancyhdr,lastpage,textcomp,needspace}\r\n\\definecolor{mxazul}{HTML}{1F3A5F}\r\n\\definecolor{mxacento}{HTML}{F2A900}\r\n\\definecolor{mxgris}{HTML}{EEF1F5}\r\n\\renewcommand{\\arraystretch}{1.35}\r\n\\setlength{\\LTleft}{0pt}\r\n\\setlength{\\LTright}{0pt}\r\n\\setlength{\\LTpre}{0pt}\r\n\\setlength{\\LTpost}{0pt}\r\n\\setlength{\\emergencystretch}{2em}\r\n\\setlength{\\parindent}{0pt}\r\n\\usepackage{titlesec}\r\n\\titleformat{\\section}{\\large\\bfseries\\color{mxazul}}{}{0pt}{}[{\\color{mxacento}\\titlerule[1.2pt]}]\r\n\\titlespacing*{\\section}{0pt}{14pt}{8pt}\r\n\\pagestyle{fancy}\\fancyhf{}\r\n\\renewcommand{\\headrulewidth}{0pt}\r\n\\fancyfoot[L]{\\scriptsize\\color{gray}${esc(cfg.empresa)} · ${esc(cfg.web)}${cfg.contacto ? ' · ' + esc(cfg.contacto) : ''}}\r\n\\fancyfoot[R]{\\scriptsize\\color{gray}${esc(codigo)} · v${esc(f0.Version || 1)} · ${esc(cfg.fecha)} · \\thepage/\\pageref{LastPage}}\r\n${borrador ? String.raw`\\usepackage{eso-pic}\r\n\\AddToShipoutPictureBG{\\AtPageCenter{\\makebox(0,0){\\rotatebox{45}{\\fontsize{60}{60}\\selectfont\\color{red!12}\\bfseries BORRADOR}}}}` : ''}\r\n\\begin{document}\r\n\\begin{minipage}[c]{0.5\\textwidth}${logo}\\end{minipage}%\r\n\\begin{minipage}[c]{0.5\\textwidth}\\raggedleft\r\n{\\small\\color{gray}FICHA TÉCNICA}\\\\[1pt]\r\n{\\large\\bfseries\\color{mxazul}${esc(codigo)}}\r\n\\end{minipage}\r\n\\\\[4pt]{\\color{mxacento}\\rule{\\textwidth}{2.5pt}}\r\n\\vspace{10pt}\r\n\r\n{\\LARGE\\bfseries\\color{mxazul}${esc(nombreGrupo(filas))}}\\\\[3pt]\r\n{\\normalsize\\color{gray}${esc(f0.Familia || '')}}\r\n\r\n${comunes.length ? String.raw`\\Needspace{5\\baselineskip}\r\n\\section*{Especificaciones técnicas}\r\n\\begin{longtable}{>{\\raggedright\\arraybackslash}p{.36\\linewidth}>{\\raggedright\\arraybackslash}p{\\dimexpr.64\\linewidth-4\\tabcolsep\\relax}}\r\n\\endfirsthead\r\n\\rowcolor{mxazul}\\textcolor{white}{\\textbf{Especificaciones}} & \\textcolor{white}{\\textbf{Continuación}} \\\\\r\n\\endhead\r\n${filasComunes}\r\n\\end{longtable}` : ''}\r\n${tablaVariantes}\r\n\r\n\\vspace{12pt}\r\n{\\scriptsize\\color{gray} Valores según la documentación técnica del producto, sujetos a las tolerancias de fabricación y a cambios sin previo aviso. Para asesoría, disponibilidad y cotización, contacte a ${esc(cfg.empresa)}.}\r\n\\end{document}\r\n`;\r\n}\r\n\r\n\n// ================== Lógica del flujo ==================\nconst cfg = $('Config').first().json;\nconst fila = $('Una por una').first().json;\nconst datos = $input.first().json;\nconst PREFIJOS = { 'Campana industrial':'CAM', 'Proyector':'PRY', 'Emergencia':'EME', 'Panel':'PAN', 'Tubo':'TUB', 'Ampolleta':'AMP', 'Otro / especializado':'ESP' };\n\nfunction fallo(msg) { return [{ json: { error: true, row_number: fila.row_number, mensaje: String(msg).slice(0, 500) } }]; }\n\nif (!datos.es_ficha_valida || !datos.variantes?.length) return fallo(datos.motivo || datos.error || 'No se detectaron especificaciones.');\n\n// SKU correlativo sin colisiones (lee la planilla actual)\nconst prefijo = PREFIJOS[datos.familia] || 'ESP';\nconst usados = $('Catálogo actual').all().map(i => String(i.json.SKU_Maxilux || ''))\n  .filter(s => s.startsWith('MX-' + prefijo + '-')).map(s => parseInt(s.split('-')[2], 10) || 0);\nlet siguiente = (usados.length ? Math.max(...usados) : 0) + 1;\n\nconst hoy = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric' });\nconst COLS = CAMPOS.map(c => c[0]);\nconst variantes = datos.variantes;\nconst grupo = variantes.length > 1 ? 'G-' + prefijo + '-' + String(siguiente).padStart(4, '0') : '';\n\nconst filas = variantes.map((v, i) => {\n  const extra = {};\n  (v.specs_extra || []).forEach(e => { if (e.nombre && e.valor) extra[e.nombre] = e.valor; });\n  const f = {\n    Estado: 'GENERADO',\n    SKU_Maxilux: 'MX-' + prefijo + '-' + String(siguiente++).padStart(4, '0'),\n    Grupo_variantes: grupo,\n    Nombre: v.nombre || datos.nombre_base,\n    Familia: datos.familia,\n    Proveedor: datos.proveedor || '',\n    Cod_proveedor: v.cod_proveedor || '',\n    Fuente_tipo: fila.Fuente_tipo || '',\n    Fuente_URL_o_archivo: fila.Fuente_URL_o_archivo,\n    Specs_extra_JSON: Object.keys(extra).length ? JSON.stringify(extra) : '',\n    Faltantes_y_dudas: datos.faltantes_y_dudas || '',\n    Version: 1,\n    Fecha_generacion: hoy,\n    Generado_por: 'n8n · reglas de extracción',\n    Notas_internas: fila.Notas_internas || '',\n    Ficha_proveedor: fila.Fuente_URL_o_archivo,\n  };\n  COLS.forEach(c => f[c] = v[c] === null || v[c] === undefined ? '' : String(v[c]));\n  return f;\n});\n\nconst tex = buildTex(filas,\n  { empresa: cfg.EMPRESA, web: cfg.WEB, contacto: cfg.CONTACTO, fecha: hoy, logo: !!cfg.LOGO_URL });\nconst slug = datos.nombre_base.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');\nconst archivo = (filas.length > 1 ? grupo : filas[0].SKU_Maxilux) + '_' + slug + '_v1';\nconst bin = await this.helpers.prepareBinaryData(Buffer.from(tex, 'utf8'), archivo + '.tex', 'application/x-tex');\n\nconst resources = [{ main: true, content: tex }];\nif (cfg.LOGO_URL) resources.push({ path: 'logo.png', url: cfg.LOGO_URL });\nreturn [{ json: { error: false, row_number: fila.row_number, filas, archivo, latex: { compiler: 'pdflatex', resources } }, binary: { tex: bin } }];"
+      },
+      "id": "00000015-4a1b-4c2d-8e3f-000000000015",
+      "name": "Armar ficha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2b3c4-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00000016-4a1b-4c2d-8e3f-000000000016",
+      "name": "¿Falló?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $input.first().json;\nreturn [{ json: { row_number: e.row_number, Estado: 'ERROR', Faltantes_y_dudas: e.mensaje } }];"
+      },
+      "id": "00000017-4a1b-4c2d-8e3f-000000000017",
+      "name": "Datos de ERROR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "00000018-4a1b-4c2d-8e3f-000000000018",
+      "name": "Marcar ERROR",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        4620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.archivo }}.tex",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.CARPETA_FICHAS_ID }}",
+          "mode": "id"
+        },
+        "inputDataFieldName": "tex",
+        "options": {}
+      },
+      "id": "00000019-4a1b-4c2d-8e3f-000000000019",
+      "name": "Subir LaTeX",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4400,
+        400
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.LATEX_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar ficha').first().json.latex) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "00000020-4a1b-4c2d-8e3f-000000000020",
+      "name": "Compilar PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4620,
+        400
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Armar ficha').first().json.archivo }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.CARPETA_FICHAS_ID }}",
+          "mode": "id"
+        },
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "00000021-4a1b-4c2d-8e3f-000000000021",
+      "name": "Subir PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4840,
+        400
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $('Armar ficha').first().json;\nconst pdf = $input.first().json;\nconst link = 'https://drive.google.com/file/d/' + pdf.id + '/view';\nreturn a.filas.map((f, i) => ({ json: i === 0\n  ? { row_number: a.row_number, ...f, Ficha_Maxilux: link }   // la fila original se actualiza\n  : { ...f, Ficha_Maxilux: link } }));                         // variantes adicionales se agregan"
+      },
+      "id": "00000022-4a1b-4c2d-8e3f-000000000022",
+      "name": "Filas a escribir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5060,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2b3c4-0000-4000-8000-000000000003",
+              "leftValue": "={{ $json.row_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00000023-4a1b-4c2d-8e3f-000000000023",
+      "name": "¿Fila original?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5280,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "00000024-4a1b-4c2d-8e3f-000000000024",
+      "name": "Actualizar fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        5500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "00000025-4a1b-4c2d-8e3f-000000000025",
+      "name": "Agregar variantes",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        5500,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "00000026-4a1b-4c2d-8e3f-000000000026",
+      "name": "Juntar",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        5720,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { listo: $('Una por una').first().json.row_number } }];"
+      },
+      "id": "00000027-4a1b-4c2d-8e3f-000000000027",
+      "name": "Siguiente fila",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5940,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## Maxilux · Fichas técnicas\nPega un enlace por fila en **Ingresar producto** y ejecuta este flujo. Acepta una página de producto o un PDF con texto, público o en Drive.\n\nConsulta **Catálogo** para ver nombre, SKU y PDF. El flujo conserva las especificaciones en Productos y genera los archivos en Drive. Las fichas quedan como borrador para revisión.\n\n**Extracción:** Lee secciones y tablas, valida campos por reglas y marca fuentes incompatibles para revisión.\n\n**Conexiones:** Google Sheets, Google Drive y el servicio local de fichas.",
+        "height": 320,
+        "width": 420,
+        "color": 4
+      },
+      "id": "00000028-4a1b-4c2d-8e3f-000000000028",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j=$input.first().json; const code=String(j.error?.message || j.message || '').match(/\\b(401|403|404|429|500|502|503)\\b/)?.[1]; return [{json:{row_number:$('Una por una').first().json.row_number, mensaje:'Error de servicio'+(code?' HTTP '+code:'')+'. Revisa la fuente y el detalle de descarga, compilación o Drive en la ejecución n8n.'}}];"
+      },
+      "id": "00000029-4a1b-4c2d-8e3f-000000000029",
+      "name": "Error de servicio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "00000030-4a1b-4c2d-8e3f-000000000030",
+      "name": "Fuentes registradas",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        440,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Ingresar producto",
+          "mode": "name"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRangeA1",
+              "range": "A1:A"
+            }
+          }
+        }
+      },
+      "id": "00000031-4a1b-4c2d-8e3f-000000000031",
+      "name": "Leer enlaces ingresados",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        660,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const encabezado = 'Ingrese URL del producto o ficha externa';\nconst registradas = new Set($('Fuentes registradas').all().map(i => String(i.json.Fuente_URL_o_archivo || '').trim()));\nconst nuevas = [];\nfor (const item of $input.all()) {\n  const url = String(item.json[encabezado] || '').trim();\n  if (!/^https?:\\/\\/[^/\\s?#@]+(?:[/?#][^\\s]*)?$/i.test(url) || registradas.has(url)) continue;\n  registradas.add(url);\n  nuevas.push({ json: {\n    Estado: 'NUEVO',\n    Fuente_URL_o_archivo: url,\n    Fuente_tipo: /\\.pdf(?:[?#]|$)/i.test(url) ? 'PDF' : 'URL',\n  } });\n}\nreturn nuevas.length ? nuevas : [{ json: {} }];"
+      },
+      "id": "00000032-4a1b-4c2d-8e3f-000000000032",
+      "name": "Seleccionar fuentes nuevas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1a2b3c4-0000-4000-8000-000000000004",
+              "leftValue": "={{ Boolean($json.Fuente_URL_o_archivo) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00000033-4a1b-4c2d-8e3f-000000000033",
+      "name": "¿Hay enlaces nuevos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Productos",
+          "mode": "name"
+        },
+        "options": {
+          "cellFormat": "RAW"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "id": "00000034-4a1b-4c2d-8e3f-000000000034",
+      "name": "Encolar fichas",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1320,
+        -200
+      ],
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Ejecutar": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer catálogo": {
+      "main": [
+        [
+          {
+            "node": "Filas NUEVO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas NUEVO": {
+      "main": [
+        [
+          {
+            "node": "Una por una",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Una por una": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Catálogo actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catálogo actual": {
+      "main": [
+        [
+          {
+            "node": "Preparar fuente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar fuente": {
+      "main": [
+        [
+          {
+            "node": "¿Archivo en Drive?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Archivo en Drive?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Detectar formato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar página": {
+      "main": [
+        [
+          {
+            "node": "Detectar formato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar formato": {
+      "main": [
+        [
+          {
+            "node": "¿Formato compatible?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Formato compatible?": {
+      "main": [
+        [
+          {
+            "node": "Leer zonas y tablas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Armar ficha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer zonas y tablas": {
+      "main": [
+        [
+          {
+            "node": "Aplicar reglas de extracción",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aplicar reglas de extracción": {
+      "main": [
+        [
+          {
+            "node": "Armar ficha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar ficha": {
+      "main": [
+        [
+          {
+            "node": "¿Falló?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Falló?": {
+      "main": [
+        [
+          {
+            "node": "Datos de ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subir LaTeX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos de ERROR": {
+      "main": [
+        [
+          {
+            "node": "Marcar ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar ERROR": {
+      "main": [
+        [
+          {
+            "node": "Siguiente fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir LaTeX": {
+      "main": [
+        [
+          {
+            "node": "Compilar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilar PDF": {
+      "main": [
+        [
+          {
+            "node": "Subir PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir PDF": {
+      "main": [
+        [
+          {
+            "node": "Filas a escribir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas a escribir": {
+      "main": [
+        [
+          {
+            "node": "¿Fila original?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Fila original?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar fila",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agregar variantes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar fila": {
+      "main": [
+        [
+          {
+            "node": "Juntar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar variantes": {
+      "main": [
+        [
+          {
+            "node": "Juntar",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Juntar": {
+      "main": [
+        [
+          {
+            "node": "Siguiente fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siguiente fila": {
+      "main": [
+        [
+          {
+            "node": "Una por una",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error de servicio": {
+      "main": [
+        [
+          {
+            "node": "Datos de ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fuentes registradas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fuentes registradas": {
+      "main": [
+        [
+          {
+            "node": "Leer enlaces ingresados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer enlaces ingresados": {
+      "main": [
+        [
+          {
+            "node": "Seleccionar fuentes nuevas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seleccionar fuentes nuevas": {
+      "main": [
+        [
+          {
+            "node": "¿Hay enlaces nuevos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay enlaces nuevos?": {
+      "main": [
+        [
+          {
+            "node": "Encolar fichas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encolar fichas": {
+      "main": [
+        [
+          {
+            "node": "Leer catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago"
+  },
+  "pinData": {}
+}

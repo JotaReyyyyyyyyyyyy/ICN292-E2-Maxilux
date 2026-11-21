@@ -1,0 +1,407 @@
+{
+  "id": "MAXILUX_FLUJO_4",
+  "name": "Maxilux 4 - Reporte semanal PDF por Telegram",
+  "active": false,
+  "nodes": [
+    {
+      "id": "ae63c628-ba04-46f3-b25d-fd2947e108c8",
+      "name": "Propósito",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -72,
+        -205
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 148,
+        "color": 6,
+        "content": "## 4. Reporte semanal PDF por Telegram\nConsolida los movimientos de la semana y entrega el PDF con portada al chat de Telegram configurado."
+      }
+    },
+    {
+      "id": "e39e028e-4342-45fa-a544-cd5c7a321d68",
+      "name": "Ruta sin trabajo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        668,
+        230
+      ],
+      "parameters": {
+        "width": 350,
+        "height": 112,
+        "color": 7,
+        "content": "### Rama «falso»\nPeríodo ya entregado. Se publica el estado sin duplicar el PDF."
+      }
+    },
+    {
+      "id": "f0723897-a65d-4d2b-9bf7-644b9aa2568e",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "b811b181-174d-42d4-9704-08419dc673e5",
+      "name": "Leer decisiones y aplicar bloqueos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "ffc85d9d-d30a-4b0f-800d-dd0271b2cdef",
+      "name": "Domingos 08 Santiago",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        170
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "479d0b21-298d-4629-b6ce-5ad15d4d0ccc",
+      "name": "Determinar período del reporte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/period",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "8649d5d2-63a9-4974-91f3-a19d1fc773ca",
+      "name": "¿Falta entregar el reporte?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a68078d9-16e0-43f8-9793-81772806794a",
+              "leftValue": "={{ $json.alreadySent === false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aeebab9f-0ed5-4459-b17e-548912843b92",
+      "name": "Calcular indicadores y detalle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/summarize",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "148d4fe1-d0d0-4880-82f5-04eee33b67c7",
+      "name": "Compilar el PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/render",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "50d1eaaa-2364-48be-b077-115bdcbebd3f",
+      "name": "Entregar PDF por Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/deliver",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    },
+    {
+      "id": "8a294e46-5d38-4c16-b19c-007e54e6438d",
+      "name": "Cerrar y actualizar Actividad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        170
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:8787/flows/4/steps/publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 600000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-maxilux-run",
+              "value": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MAXILUX_API_HEADER",
+          "name": "Maxilux - servicio interno"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domingos 08 Santiago": {
+      "main": [
+        [
+          {
+            "node": "Leer decisiones y aplicar bloqueos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer decisiones y aplicar bloqueos": {
+      "main": [
+        [
+          {
+            "node": "Determinar período del reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determinar período del reporte": {
+      "main": [
+        [
+          {
+            "node": "¿Falta entregar el reporte?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Falta entregar el reporte?": {
+      "main": [
+        [
+          {
+            "node": "Calcular indicadores y detalle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cerrar y actualizar Actividad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular indicadores y detalle": {
+      "main": [
+        [
+          {
+            "node": "Compilar el PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilar el PDF": {
+      "main": [
+        [
+          {
+            "node": "Entregar PDF por Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entregar PDF por Telegram": {
+      "main": [
+        [
+          {
+            "node": "Cerrar y actualizar Actividad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago",
+    "saveExecutionProgress": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 660
+  },
+  "pinData": {},
+  "versionId": "75648963-e30d-4d3c-bc5b-45841e2248f0",
+  "tags": []
+}

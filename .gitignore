@@ -1,0 +1,34 @@
+# Privacidad y credenciales (NUNCA subir al repositorio)
+privado/
+*.env
+!config.env.example
+Correos.txt
+Login.txt
+*credencial*
+*secret*
+*token*
+*.sqlite
+*.db
+
+# Dependencias y compilación
+node_modules/
+__pycache__/
+.venv/
+venv/
+
+# Auxiliares LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.vrb
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# Archivos internos de traspaso (NUNCA subir a GitHub ni a Aula)
+LEER_SOLO_LA_IA_NO_SUBIR.md
+02_SUBIR_SOLO_ESTO_A_AULA/
+*.zip
